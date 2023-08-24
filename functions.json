@@ -1,0 +1,36 @@
+{
+  "Functions": [
+    
+    {
+      "Id": 3,
+      "Name": "PorterStem",
+      "Type": 0,
+      "ReturnType": 0,
+      "Params": {
+        "word": 0
+      }
+    },
+    {
+      "Id": 1,
+      "Name": "Lemma",
+      "Type": 2,
+      "ReturnType": 0,
+      "Params": {
+        "word": 0
+      }
+    },
+    {
+      "Id": 2,
+      "Name": "XMR_Row",
+      "Type": 0,
+      "ReturnType": 2,
+      "Params": {
+        "date": 2,
+        "value": 2,
+        "group": 2,
+        "datatype":0
+      }
+    }
+
+  ]
+}
