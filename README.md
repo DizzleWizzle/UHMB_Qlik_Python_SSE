@@ -8,7 +8,7 @@ Currently 3 functions:
 * Lemma 
     * currently broken
 
-* XMR_Row(<return value>,<x value>,<y value>,<grouping>) 
+* XMR_Row(\<return value\>,\<x value\>,\<y value\>,\<grouping\>) 
     * return value one of the following
       * UCL - value of the Upper control limit line
       * LCL - value of the Lower control limit line
@@ -18,3 +18,10 @@ Currently 3 functions:
     * x value (what is on the x axis - usually a date)
     * y value (the measure)
     * grouping (if there are recalculation periods used this to define them, if no recalculation just put a constant in there like 'test')
+      * Qlik Combochart where expressions just use 'test' in the final parameter - i.e UHMBSSE.XMR_Row('UCL',WeekStart,Sum(Expression1),'TEST')
+        * ![NoGrouping](https://github.com/DizzleWizzle/UHMB_Qlik_Python_SSE/assets/111445780/813e9320-594a-4915-ac65-e677dc58c707)
+      * Qlik Combochart where expressions recalculate on each calendar year - i.e UHMBSSE.XMR_Row('UCL',WeekStart,Sum(Expression1),year(WeekStart))
+        *![Grouping](https://github.com/DizzleWizzle/UHMB_Qlik_Python_SSE/assets/111445780/80ba0680-107f-4c1b-9baf-62a85fdef228)
+
+
+
