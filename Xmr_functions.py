@@ -1,18 +1,22 @@
 import ServerSideExtension_pb2 as SSE
 import datetime
+import math
 
 def generateDataSet(data,runlength=7 ,trendlength =7,clunderzero =1,calcpoints=200,within1sigma=15,useBaseline =False):
     optSD =3
     unique = list(dict.fromkeys([item['reCalcID'] for item in data]))
     Holding = []
     newdata = []
+    
     for ID in unique:
         temp = sorted([x for x in data if x['reCalcID'] == ID],key=lambda x:x['dim'])
     
         Holding.append(temp)
         temp = None
     for group in Holding:
-        trimmed = group.copy()
+        #trimmed = group.copy()
+        trimmed = [x for x in group if not math.isnan(x['value'])].copy()
+        
         if len(trimmed) >= calcpoints and calcpoints > 0 and useBaseline == True:
             trimmed = trimmed[:calcpoints]
         trimmed[0]['MR'] = 0
@@ -27,22 +31,29 @@ def generateDataSet(data,runlength=7 ,trendlength =7,clunderzero =1,calcpoints=2
                 xLCL = 0
         xSigma = xMR / 1.128
         for row in group:
-            row['currAvg'] = xAvg
-            row['currUCL'] = xUCL
-            row['currLCL'] = xLCL
-            row['currSigma'] = xSigma
+            if not math.isnan(row['value']):
+                row['currAvg'] = xAvg
+                row['currUCL'] = xUCL
+                row['currLCL'] = xLCL
+                row['currSigma'] = xSigma
+            else:
+                row['currAvg'] = math.nan
+                row['currUCL'] = math.nan
+                row['currLCL'] = math.nan
+                row['currSigma'] = math.nan
         newdata.extend(group)
 
     data = sorted(newdata ,key=lambda x:x['dim'])
     newdata = []
-
-
+    nulls = [x for x in data if math.isnan(x['value'])].copy()
+    data = [x for x in data if not math.isnan(x['value'])].copy()
     for i in range(len(data)):
-        d = data[i]
+        #d = data[i]
         #d['dim'] = dateFromQlikNumber(d['dim'])
         # d['value'] = d['value']
         #if i > 0:
         #    d['MR'] = d['value'] - data[i - 1]['value']
+        
         meansum = meanSumCheck(data, i, runlength)
         revmeansum = revMeanSumCheck(data, i, runlength)
         trendsum = trendSumCheck(data, i, trendlength - 1)
@@ -54,6 +65,7 @@ def generateDataSet(data,runlength=7 ,trendlength =7,clunderzero =1,calcpoints=2
         d = data[i]
         d.setdefault('nearUCLCheck',0)
         d.setdefault('nearLCLCheck',0)
+        
         if meansum == runlength or revmeansum == runlength or ((i > 0) and (data[i - 1]['check'] == 1 and d['value'] > d['currAvg'])):
                 d['check'] = 1
         elif meansum == -runlength or revmeansum == -runlength or ((i > 0) and (data[i - 1]['check'] == -1 and d['value'] < d['currAvg'])):
@@ -92,7 +104,13 @@ def generateDataSet(data,runlength=7 ,trendlength =7,clunderzero =1,calcpoints=2
         else:
             d['highlight'] = 0       
         
-        prevValue = d['value']
+        #prevValue = d['value']
+
+    for i in range(len(nulls)):
+        nulls[i]['highlight']= math.nan
+    
+    data.extend(nulls)
+    data = sorted(data ,key=lambda x:x['dim'])
 
     return(data)
 
