@@ -60,12 +60,61 @@ class ExtensionService(SSE.ConnectorServicer):
         return {            
             0: '_PorterStem',
             1: '_Lemma',
-            2: '_XMR_row'
+            2: '_XMR_row',
+            3: '_XMR_table'
         }
 
     """
     Implementation of added functions.
     """
+    @staticmethod
+    def _XMR_table(request, context):
+        table = SSE.TableDescription(name='XMR_Table')
+        table.fields.add(name='Dimension', dataType=SSE.NUMERIC)
+        table.fields.add(name='Measure', dataType=SSE.NUMERIC)
+        table.fields.add(name='UCL', dataType=SSE.NUMERIC)
+        table.fields.add(name='LCL', dataType=SSE.NUMERIC)
+        table.fields.add(name='MR', dataType=SSE.NUMERIC)
+        table.fields.add(name='Mean', dataType=SSE.NUMERIC)
+        table.fields.add(name='highlight', dataType=SSE.NUMERIC)
+        md = (('qlik-tabledescription-bin', table.SerializeToString()),('qlik-cache', 'no-store'))
+        context.send_initial_metadata(md)
+        #md = (('qlik-cache', 'no-store'),)
+        #context.send_initial_metadata(md)
+        counter = 0
+        #print(request)
+        # Iterate over bundled rows
+        for request_rows in request:
+            num_array = []
+            # Iterating over rows
+           
+            for row in request_rows.rows:
+                #print(row)
+                num_array.append({"dim":[d.numData for d in row.duals][0], "value":[d.numData for d in row.duals][2],"reCalcID" : [d.strData for d in row.duals][1],"counter": counter })
+                counter= counter+1
+        #print(num_array)  
+        xmrcalcs = sorted(generateDataSet(num_array),key=lambda x:x['counter'])
+        #print(xmrcalcs)
+
+        
+
+        response_rows = []
+        for x in xmrcalcs:
+            UCL = x['currUCL']
+            LCL = x['currLCL']
+            dim = x['dim']
+            val = x['value']
+            MR = x['MR']
+            AVG = x['currAvg']
+            high = x['highlight']
+            #print(result)
+            #print(x["counter"])
+            duals = iter([SSE.Dual(numData=dim,strData=str(dim)),SSE.Dual(numData=val,strData=str(val)),SSE.Dual(numData=UCL,strData=str(UCL)), SSE.Dual(numData=LCL,strData=str(LCL)), SSE.Dual(numData=MR,strData=str(MR)), SSE.Dual(numData=AVG,strData=str(AVG)), SSE.Dual(numData=high,strData=str(high))])
+            response_rows.append(SSE.Row(duals=duals))
+
+        yield SSE.BundledRows(rows=response_rows)
+
+
     @staticmethod
     def _XMR_row(request, context):
         md = (('qlik-cache', 'no-store'),)

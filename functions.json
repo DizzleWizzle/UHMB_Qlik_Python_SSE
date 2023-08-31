@@ -2,7 +2,7 @@
   "Functions": [
     
     {
-      "Id": 3,
+      "Id": 0,
       "Name": "PorterStem",
       "Type": 0,
       "ReturnType": 0,
@@ -23,12 +23,23 @@
       "Id": 2,
       "Name": "XMR_Row",
       "Type": 0,
-      "ReturnType": 2,
+      "ReturnType": 1,
       "Params": {
         "date": 2,
         "value": 2,
         "group": 2,
         "datatype":0
+      }
+    },
+    {
+      "Id": 3,
+      "Name": "XMR_Table",
+      "Type": 2,
+      "ReturnType": 2,
+      "Params": {
+        "date": 2,
+        "value": 2,
+        "group": 2
       }
     }
 
