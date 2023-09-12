@@ -1,12 +1,13 @@
 # UHMB Qlik Python SSE
 Built from the column operations example in the Qlik official github https://github.com/qlik-oss/server-side-extension/tree/master/examples/python 
 
-Currently 3 functions:
+Currently 6 functions:
+Scalar functions (can use in front end)
 * PorterStem 
     *  does Porter's Stemming Algorithm from the NLTK package against the words passed to it (currently single word only)
 
 * Lemma 
-    * currently broken
+    * does a bad attempt at lemmatizing with hard coded v POS tags - probably dont use
 
 * XMR_Row(\<return value\>,\<x value\>,\<y value\>,\<grouping\>) 
     * return value one of the following
@@ -23,5 +24,10 @@ Currently 3 functions:
       * Qlik Combochart where expressions recalculate on each calendar year - i.e UHMBSSE.XMR_Row('UCL',WeekStart,Sum(Expression1),year(WeekStart))
         *![Grouping](https://github.com/DizzleWizzle/UHMB_Qlik_Python_SSE/assets/111445780/80ba0680-107f-4c1b-9baf-62a85fdef228)
 
+Tensor functions (use the Load ... Extension syntax in the load script
+
+* XMR_Table(\<x value\>,\<grouping\>,\<y value\>)
+
+*
 
 
