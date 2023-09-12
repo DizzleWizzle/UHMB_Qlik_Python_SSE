@@ -8,7 +8,7 @@ import sys
 import time
 import nltk
 from nltk.stem import *
-from nltk.corpus import wordnet as wn
+from nltk.corpus import wordnet as wn, brown
 from nltk import word_tokenize, pos_tag
 from collections import defaultdict
 from concurrent import futures
@@ -44,6 +44,8 @@ class ExtensionService(SSE.ConnectorServicer):
         log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logger.config')
         logging.config.fileConfig(log_file)
         logging.info('Logging enabled')
+        ## section for downloads etc to only run on startup
+        nltk.download('brown')
 
     @property
     def function_definitions(self):
@@ -61,12 +63,79 @@ class ExtensionService(SSE.ConnectorServicer):
             0: '_PorterStem',
             1: '_Lemma',
             2: '_XMR_row',
-            3: '_XMR_table'
+            3: '_XMR_table',
+            4: '_PorterStem_table',
+            5: '_Rev_Stem_table'
         }
 
     """
     Implementation of added functions.
     """
+    @staticmethod
+    def _Rev_Stem_table(request, context):
+      
+        """
+        stem a single word.
+        :param request: iterable sequence of bundled rows
+        :return: string
+        """
+        table = SSE.TableDescription(name='Porter_Table')
+        table.fields.add(name='Original', dataType=SSE.STRING)
+        table.fields.add(name='Stemmed', dataType=SSE.STRING)
+        md = (('qlik-tabledescription-bin', table.SerializeToString()),('qlik-cache', 'no-store'))
+        context.send_initial_metadata(md)
+      
+        stemmer = PorterStemmer()
+        
+        wordlist_lowercased = set(i.lower() for i in brown.words())
+        #print (wordlist_lowercased)
+        # Iterate total words
+        response_rows =[]
+        for word in wordlist_lowercased:
+           
+            param = stemmer.stem(word)
+            orig = word
+            duals = iter([SSE.Dual(strData=orig),SSE.Dual(strData=param)])
+            response_rows.append(SSE.Row(duals=duals))
+            # params.append(param)
+        yield SSE.BundledRows(rows=response_rows)
+
+    @staticmethod
+    def _PorterStem_table(request, context):
+      
+        """
+        stem a table of single words, using load * extension in script.
+        :param request: iterable sequence of bundled rows
+        :return: string
+        """
+        table = SSE.TableDescription(name='Porter_Table')
+        table.fields.add(name='Original', dataType=SSE.STRING)
+        table.fields.add(name='Stemmed', dataType=SSE.STRING)
+        md = (('qlik-tabledescription-bin', table.SerializeToString()),('qlik-cache', 'no-store'))
+        context.send_initial_metadata(md)
+      
+        stemmer = PorterStemmer()
+
+
+        # Iterate over bundled rows
+        for request_rows in request:
+            # Iterate over rows
+            #print(request_rows)
+            response_rows =[]
+            for row in request_rows.rows:
+                #print (row)
+                # Retrieve string value of parameter and append to the params variable
+                # Length of param is 1 since one column is received, the [0] collects the first value in the list
+                param = [stemmer.stem(d.strData) for d in row.duals][0]
+                orig = [x.strData for x in row.duals][0]
+                duals = iter([SSE.Dual(strData=orig),SSE.Dual(strData=param)])
+                response_rows.append(SSE.Row(duals=duals))
+                # params.append(param)
+        yield SSE.BundledRows(rows=response_rows)
+
+
+
+
     @staticmethod
     def _XMR_table(request, context):
         table = SSE.TableDescription(name='XMR_Table')
@@ -156,97 +225,7 @@ class ExtensionService(SSE.ConnectorServicer):
         yield SSE.BundledRows(rows=response_rows)
 
 
-    # @staticmethod
-    # def _sum_of_rows(request, context):
-    #     """
-    #     Summarize two parameters row wise. Tensor function.
-    #     :param request: an iterable sequence of RowData
-    #     :param context:
-    #     :return: the same iterable sequence of row data as received
-    #     """
-       
-    #     # Iterate over bundled rows
-    #     for request_rows in request:
-    #         response_rows = []
-    #         # Iterating over rows
-    #         for row in request_rows.rows:
-    #             # Retrieve the numerical value of the parameters
-    #             # Two columns are sent from the client, hence the length of params will be 2
-    #             params = [d.numData for d in row.duals]
-
-    #             # Sum over each row
-    #             result = sum(params)
-
-    #             # Create an iterable of Dual with a numerical value
-    #             duals = iter([SSE.Dual(numData=result)])
-
-    #             # Append the row data constructed to response_rows
-    #             response_rows.append(SSE.Row(duals=duals))
-
-    #         # Yield Row data as Bundled rows
-    #         yield SSE.BundledRows(rows=response_rows)
-
-    # @staticmethod
-    # def _sum_of_column(request, context):
-    #     """
-    #     Summarize the column sent as a parameter. Aggregation function.
-    #     :param request: an iterable sequence of RowData
-    #     :param context:
-    #     :return: int, sum if column
-    #     """
-    #     params = []
-
-    #     # Iterate over bundled rows
-    #     for request_rows in request:
-    #         # Iterating over rows
-    #         for row in request_rows.rows:
-    #             # Retrieve numerical value of parameter and append to the params variable
-    #             # Length of param is 1 since one column is received, the [0] collects the first value in the list
-    #             param = [d.numData for d in row.duals][0]
-    #             params.append(param)
-
-    #     # Sum all rows collected the the params variable
-    #     result = sum(params)
-
-    #     # Create an iterable of dual with numerical value
-    #     duals = iter([SSE.Dual(numData=result)])
-
-    #     # Yield the row data constructed
-    #     yield SSE.BundledRows(rows=[SSE.Row(duals=duals)])
-
-    # @staticmethod
-    # def _max_of_columns_2(request, context):
-    #     """
-    #     Find max of each column. This is a table function.
-    #     :param request: an iterable sequence of RowData
-    #     :param context:
-    #     :return: a table with numerical values, two columns and one row
-    #     """
-
-    #     result = [_MINFLOAT]*2
-
-    #     # Iterate over bundled rows
-    #     for request_rows in request:
-    #         # Iterating over rows
-    #         for row in request_rows.rows:
-    #             # Retrieve the numerical value of each parameter
-    #             # and update the result variable if it's higher than the previously saved value
-    #             for i in range(0, len(row.duals)):
-    #                 result[i] = max(result[i], row.duals[i].numData)
-
-    #     # Create an iterable of dual with numerical value
-    #     duals = iter([SSE.Dual(numData=r) for r in result])
-
-    #     # Set and send Table header
-    #     table = SSE.TableDescription(name='MaxOfColumns', numberOfRows=1)
-    #     table.fields.add(name='Max1', dataType=SSE.NUMERIC)
-    #     table.fields.add(name='Max2', dataType=SSE.NUMERIC)
-    #     md = (('qlik-tabledescription-bin', table.SerializeToString()),)
-    #     context.send_initial_metadata(md)
-        
-    #     # Yield the row data constructed
-    #     yield SSE.BundledRows(rows=[SSE.Row(duals=duals)])
-
+  
     @staticmethod
     def _PorterStem(request, context):
       
@@ -287,6 +266,7 @@ class ExtensionService(SSE.ConnectorServicer):
         tag_map['V'] = wn.VERB
         tag_map['R'] = wn.ADV
 
+        print(tag_map)
         lemma_function = WordNetLemmatizer()
 
         # Iterate over bundled rows
@@ -298,9 +278,9 @@ class ExtensionService(SSE.ConnectorServicer):
                 # Length of param is 1 since one column is received, the [0] collects the first value in the list
                 
                 print(row.duals[0].strData)
-                Ptag = nltk.pos_tag(row.duals[0].strData)#[0][1]
-                Tag = tag_map.get(Ptag,"n")
-                lemma = lemma_function.lemmatize(row.duals[0].strData,Tag)
+                #Ptag = nltk.pos_tag(row.duals[0].strData)#[0][1]
+                #Tag = tag_map.get(Ptag,"n")
+                lemma = lemma_function.lemmatize(row.duals[0].strData,'v')
                 duals = iter([SSE.Dual(strData=lemma)])
                 response_rows.append(SSE.Row(duals=duals))
                 # params.append(param)
