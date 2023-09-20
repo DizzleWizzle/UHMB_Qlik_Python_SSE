@@ -2,6 +2,7 @@
 Built from the column operations example in the Qlik official github https://github.com/qlik-oss/server-side-extension/tree/master/examples/python 
 
 Currently 6 functions:
+
 Scalar functions (can use in front end, one call per row)
 * PorterStem 
     *  does Porter's Stemming Algorithm from the NLTK package against the words passed to it (currently single word only)
@@ -50,3 +51,7 @@ Tensor functions (use the Load ... Extension syntax in the load script, one call
       *  Stemmed - the Stem of the word  
 
 
+Setup:
+Follow the guide in the linked Qlik SSE (would strongly suggest getting their examples working first).
+
+I also used NSSM and followed this guide (https://www.mssqltips.com/sqlservertip/7325/how-to-run-a-python-script-windows-service-nssm/) to have it running on a seperate server as a service.
